@@ -162,6 +162,7 @@ if __name__ == '__main__':
     t = time.time()
     pro = DualityPerception()
     pro.fit(train_x, train_y)
+    print("the test data:\n", test_y)
     print("the predict of test data:\n", pro.predict(test_x))
     print("the accuracy of test data:\n", pro.score(test_x, test_y))
     print("time had run: \n", time.time() - t)

@@ -32,10 +32,10 @@ class UnaryPerception(object):
                 accuracy ---> 1
             Steps to see the main...
     """
-    def __init__(self, speed=0.2, b=0):
+    def __init__(self, speed=0.2, b=0, w=None):
         self.speed = speed
         self.b = b
-        self.w = None
+        self.w = w
         self.total_error = None
 
     def __equation(self, x):
@@ -155,12 +155,16 @@ class UnaryPerception(object):
 
 
 if __name__ == '__main__':
+    import time
     iris = load_iris()
     x = iris.data[0:100, :]
     y = iris.target[0:100]
     y[y == 0] = -1
     train_x, test_x, train_y, test_y = train_test_split(x, y)
+    t = time.time()
     pro = UnaryPerception()
     pro.fit(train_x, train_y)
+    print("the test data:\n", test_y)
     print("the predict of test data:\n", pro.predict(test_x))
     print("the accuracy of test data:\n", pro.score(test_x, test_y))
+    print("time had run:\n", time.time() - t)
