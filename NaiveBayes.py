@@ -1,8 +1,8 @@
 """
-    Module: KNN
+    Module: NaiveBayes
     Author: ShaoHaozhou
     motto: Self-discipline, self-improvement, self-love
-    Date: 2020/12/3
+    Date: 2020/12/7
     Introduce: This is a machine learning algorithm that implements NaiveBayes
 """
 import numpy as np
