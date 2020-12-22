@@ -33,15 +33,15 @@ class QuadrantsNeuralNetwork(object):
                 0.1216738224029541
         Steps to see the main...
     """
-    def __init__(self, learingSpeed=0.001, penaltyCoefficient=0.001):
-        self.learningSpeed = learingSpeed
+    def __init__(self, learningSpeed=0.001, penaltyCoefficient=0.001):
+        self.learningSpeed = learningSpeed
         self.penaltyCoefficient = penaltyCoefficient
         self.input_dim = None   # input layer's dim
         self.num_classes = 4    # output layer's dim
         self.hidden_dim = 50    # hidden layer's dim
         self.__w = []   # H = XW + b, W
         self.__b = []   # H = XW + b, b
-        self.out = None  # H = XW + b, H
+        self.__h = []  # H = XW + b, H
 
     def __initialize(self):
         """
@@ -68,7 +68,7 @@ class QuadrantsNeuralNetwork(object):
             return None
         """
         x_row = x.reshape(x.shape[0], -1)
-        self.out = np.dot(x_row, w) + b
+        self.__h.append(np.dot(x_row, w) + b)
 
     def __affine_backward(self, dout, x, w):
         """
@@ -148,18 +148,19 @@ class QuadrantsNeuralNetwork(object):
         :return:
             return the predicts of test data
         """
+        self.__h = []
         predicts = np.array([], dtype=int)
         self.__affine_forward(test_x, self.__w[0], self.__b[0])
-        h = self.__relu(self.out)
+        h = self.__relu(self.__h[0])
         self.__affine_forward(h, self.__w[1], self.__b[1])
-        prob = self.__softmax(self.out)
+        prob = self.__softmax(self.__h[1])
 
         for i in range(test_x.shape[0]):
             predicts = np.append(predicts, np.argmax(prob[i, :]))
 
         return predicts
 
-    def __get__accuracy(self, predicts, test_y):
+    def __get_accuracy(self, predicts, test_y):
         """
         # TODO: to get the accuracy of predict
         :param predicts:
@@ -186,11 +187,12 @@ class QuadrantsNeuralNetwork(object):
         self.input_dim = train_x.shape[1]
         self.__initialize()
         for i in range(1, repeat+1):
+            self.__h = []
             # 正向传播(the forward propagation)
             self.__affine_forward(train_x, self.__w[0], self.__b[0])
-            h = self.__relu(self.out)
+            h = self.__relu(self.__h[0])
             self.__affine_forward(h, self.__w[1], self.__b[1])
-            prob = self.__softmax(self.out)
+            prob = self.__softmax(self.__h[1])
             loss = self.__loss(prob, train_y)
 
             # 输出(output the loss of caches)
@@ -225,7 +227,7 @@ class QuadrantsNeuralNetwork(object):
             return accuracy
         """
         predicts = self.__predict(test_x)
-        return self.__get__accuracy(predicts, test_y)
+        return self.__get_accuracy(predicts, test_y)
 
 
 if __name__ == '__main__':
