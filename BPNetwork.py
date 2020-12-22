@@ -14,7 +14,7 @@ import numpy as np
 class BPNetwork(object):
     """
         :keyword
-            The class of QuadrantsNeuralNetwork
+            The class of BPNetwork
 
         :arg
             learningSpeed: The speed of learning, default: 0.001
