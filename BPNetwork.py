@@ -6,6 +6,9 @@
     Introduce: The BP neural network can set the number of hidden layers,
             the number of neurons in each layer and the number of neurons in the output layer
     介绍: 可设置隐藏层的层数和每层神经元的数量、输出层的神经元数量的BP神经网络(实现自动化)
+
+    Update time:
+        2020/12/28: TODO: update the activation functions: old:{ReLu} => new:{ReLu, Sigmoid, tanh}
 """
 
 import numpy as np
@@ -14,7 +17,7 @@ import numpy as np
 class BPNetwork(object):
     """
         :keyword
-            The class of BPNetwork
+            The class of QuadrantsNeuralNetwork
 
         :arg
             learningSpeed: The speed of learning, default: 0.001
@@ -41,9 +44,10 @@ class BPNetwork(object):
                     2.5861566066741943
             Steps to see the main...
     """
-    def __init__(self, learningSpeed=0.001, penaltyCoefficient=0.001):
+    def __init__(self, learningSpeed=0.001, penaltyCoefficient=0.001, activation="relu"):
         self.learningSpeed = learningSpeed
         self.penaltyCoefficient = penaltyCoefficient
+        self.__activation = activation
         self.input_dim = None   # input layer's dim
         self.output_dim = None    # output layer's dim
         self.levels = None
@@ -51,17 +55,19 @@ class BPNetwork(object):
         self.__w = []   # H = XW + b, W
         self.__b = []   # H = XW + b, b
         self.__h = []   # H = XW + b, H
-        self.__relu_h = []  # ReLu(H)
+        self.__activation_h = []  # ReLu(H)
+        self.__activations = {"relu": [self.__relu, self.__relu_backward],
+                              "sigmoid": [self.__sigmoid, self.__sigmoid_backward],
+                              "tanh": [self.__tanh, self.__tanh_backward]}
 
     def __initialize(self):
         """
-        # TODO: Initialization of H, ReLu(H), W and b
+        # TODO: Initialization of H, Activation(H), W and b
         :return:
             return None
         """
-        np.random.seed(1)
         self.__h = [0] * self.levels
-        self.__relu_h = [0] * self.levels
+        self.__activation_h = [0] * self.levels
         self.__w.append(np.random.randn(self.input_dim, self.hidden_dim[0]))
         self.__b.append(np.zeros((1, self.hidden_dim[0])))
         for i in range(self.levels-1):
@@ -80,6 +86,45 @@ class BPNetwork(object):
             0 or h
         """
         return np.maximum(0, h)
+
+    def __relu_backward(self, dh, h):
+        """
+        # TODO: the affine backward of ReLu
+        """
+        dh[h <= 0] = 0
+        return dh
+
+    def __sigmoid(self, h):
+        """
+        # TODO: the active coating which name is called Sigmoid
+        :param h:
+            H = XW + b, H
+        :return:
+            1/(1 + exp(-h)) => (0, 1)
+        """
+        return 1/(1 + np.exp(-h))
+
+    def __sigmoid_backward(self, dh, h):
+        """
+        # TODO: the affine backward of Sigmoid
+        """
+        return dh * self.__sigmoid(h)*(1 + self.__sigmoid(h))
+
+    def __tanh(self, h):
+        """
+        # TODO: the active coating which name is called tanh
+        :param h:
+            H = XW + b, H
+        :return:
+            tanh(h) => (-1, 1)
+        """
+        return np.tanh(h)
+
+    def __tanh_backward(self, dh, h):
+        """
+        # TODO: the affine backward of tanh
+        """
+        return dh * (1 - np.power(self.__tanh(h), 2))
 
     def __softmax(self, y):
         """
@@ -102,7 +147,7 @@ class BPNetwork(object):
         :return:
             cross entropy
         """
-        return -np.sum(np.log(prob[np.arange(train_y.shape[0]), train_y]) / train_y.shape[0])
+        return -np.sum(np.log(prob[np.arange(train_y.shape[0]), train_y])) / train_y.shape[0]
 
     def __gradient_descent(self, level, dw, db):
         """
@@ -114,6 +159,7 @@ class BPNetwork(object):
         :param db:
             the gradient of b
         :return:
+            None
         """
         self.__w[level] -= self.learningSpeed * (1 + self.penaltyCoefficient) * dw
         self.__b[level] -= self.learningSpeed * (1 + self.penaltyCoefficient) * db
@@ -128,7 +174,7 @@ class BPNetwork(object):
         :param b:
             H = XW + b, b
         :return:
-            return None
+            None
         """
         x_row = x.reshape(x.shape[0], -1)
         return np.dot(x_row, w) + b
@@ -166,11 +212,11 @@ class BPNetwork(object):
         """
         predicts = np.array([], dtype=int)
         self.__h[0] = self.__affine_forward(test_x, self.__w[0], self.__b[0])
-        self.__relu_h[0] = self.__relu(self.__h[0])
+        self.__activation_h[0] = self.__activations[self.__activation][0](self.__h[0])
         for j in range(self.levels - 1):
-            self.__h[j + 1] = self.__affine_forward(self.__relu_h[j], self.__w[j+1], self.__b[j+1])
-            self.__relu_h[j + 1] = self.__relu(self.__h[j + 1])
-        Y = self.__affine_forward(self.__relu_h[self.levels-1], self.__w[self.levels], self.__b[self.levels])
+            self.__h[j + 1] = self.__affine_forward(self.__activation_h[j], self.__w[j+1], self.__b[j+1])
+            self.__activation_h[j + 1] = self.__relu(self.__h[j + 1])
+        Y = self.__affine_forward(self.__activation_h[self.levels-1], self.__w[self.levels], self.__b[self.levels])
         prob = self.__softmax(Y)
 
         for i in range(test_x.shape[0]):
@@ -222,28 +268,28 @@ class BPNetwork(object):
         self.__initialize()
         for i in range(1, repeat + 1):
             self.__h[0] = self.__affine_forward(train_x, self.__w[0], self.__b[0])
-            self.__relu_h[0] = self.__relu(self.__h[0])
+            self.__activation_h[0] = self.__activations[self.__activation][0](self.__h[0])
             for j in range(self.levels-1):
-                self.__h[j+1] = self.__affine_forward(self.__relu_h[j], self.__w[j+1], self.__b[j+1])
-                self.__relu_h[j+1] = self.__relu(self.__h[j+1])
+                self.__h[j+1] = self.__affine_forward(self.__activation_h[j], self.__w[j+1], self.__b[j+1])
+                self.__activation_h[j+1] = self.__activations[self.__activation][0](self.__h[j+1])
 
-            Y = self.__affine_forward(self.__relu_h[self.levels-1], self.__w[self.levels], self.__b[self.levels])
+            Y = self.__affine_forward(self.__activation_h[self.levels-1], self.__w[self.levels], self.__b[self.levels])
             prob = self.__softmax(Y)
             loss = self.__loss(prob, train_y)
 
             # 输出(output the loss of caches)
-            print("the %s cache's loss is %s" % (i, loss))
+            print("the %s cache's loss is %s and accuracy is %s" % (i, loss, self.score(train_x, train_y)))
 
             # 反向传播(the back propagation)
             prob[np.arange(train_y.shape[0]), train_y] -= 1
 
-            dh, dw, db = self.__affine_backward(prob, self.__relu_h[self.levels-1], self.__w[self.levels])
-            dh[self.__relu_h[self.levels-1] <= 0] = 0
+            dh, dw, db = self.__affine_backward(prob, self.__activation_h[self.levels-1], self.__w[self.levels])
+            dh = self.__activations[self.__activation][1](dh, self.__activation_h[self.levels-1])
             self.__gradient_descent(self.levels, dw, db)
 
             for j in range(self.levels-1, 0, -1):
-                dh, dw, db = self.__affine_backward(dh, self.__relu_h[j-1], self.__w[j])
-                dh[self.__relu_h[j-1] <= 0] = 0
+                dh, dw, db = self.__affine_backward(dh, self.__activation_h[j-1], self.__w[j])
+                dh = self.__activations[self.__activation][1](dh, self.__activation_h[j-1])
                 self.__gradient_descent(j, dw, db)
 
             dx, dw, db = self.__affine_backward(dh, train_x, self.__w[0])
